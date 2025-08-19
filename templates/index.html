@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>WLENS Captação de leads</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+
+    <!-- Navbar com botão de encerrar -->
+    <nav class="bg-gray-800 p-4 text-white text-xl font-bold flex justify-between items-center">
+        <span>WLENS Captação de leads</span>
+        <form action="/sair" method="POST">
+            <button type="submit" class="bg-red-600 hover:bg-red-700 text-white text-sm px-3 py-1 rounded">
+                Encerrar aplicação
+            </button>
+        </form>
+    </nav>
+
+    <div class="container mx-auto p-6">
+
+        <!-- Formulário -->
+        <form id="formBusca" method="POST">
+            <div class="flex gap-2 mb-4">
+                <input type="text" name="termo" id="campoBusca" class="flex-1 p-2 rounded border" placeholder="Ex: Padarias em Bauru" required>
+                <button type="button" onclick="submeterFormulario()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                    Buscar
+                </button>
+            </div>
+        </form>
+
+        <!-- Spinner -->
+        <div id="spinner" class="hidden text-center my-4">
+            <svg class="animate-spin h-8 w-8 text-blue-600 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+            </svg>
+            <p class="text-gray-600 mt-2">Buscando dados...</p>
+        </div>
+
+        {% if resultados %}
+            <div class="overflow-x-auto mt-4">
+                <table class="min-w-full bg-white rounded shadow">
+                    <thead class="bg-gray-200 text-gray-700">
+                        <tr>
+                            <th class="py-2 px-4 text-left">Nome</th>
+                            <th class="py-2 px-4 text-left">Número</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in resultados %}
+                        <tr class="border-t">
+                            <td class="py-2 px-4">{{ item.nome }}</td>
+                            <td class="py-2 px-4">{{ item.numero }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <button onclick="baixarXML()" class="mt-4 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                Baixar XML
+            </button>
+
+            <div id="mapa" class="h-96 w-full mt-6 rounded shadow"></div>
+
+            <script>
+                function initMap() {
+                    const centro = { lat: {{ resultados[0].lat }}, lng: {{ resultados[0].lng }} };
+                    const mapa = new google.maps.Map(document.getElementById("mapa"), {
+                        zoom: 13,
+                        center: centro
+                    });
+
+                    const marcadores = [
+                        {% for item in resultados %}
+                            {
+                                position: { lat: {{ item.lat }}, lng: {{ item.lng }} },
+                                title: "{{ item.nome }}"
+                            },
+                        {% endfor %}
+                    ];
+
+                    marcadores.forEach(info => {
+                        const marker = new google.maps.Marker({
+                            position: info.position,
+                            map: mapa,
+                            title: info.title
+                        });
+
+                        const infowindow = new google.maps.InfoWindow({
+                            content: info.title
+                        });
+
+                        marker.addListener('click', () => {
+                            infowindow.open(mapa, marker);
+                        });
+                    });
+                }
+            </script>
+            <script async src="https://maps.googleapis.com/maps/api/js?key={{ key }}&callback=initMap"></script>
+        {% endif %}
+    </div>
+
+    <!-- Scripts globais -->
+    <script>
+        function mostrarSpinner() {
+            document.getElementById("spinner").classList.remove("hidden");
+        }
+
+        function submeterFormulario() {
+            mostrarSpinner();
+            setTimeout(() => {
+                document.getElementById("formBusca").submit();
+            }, 100);
+        }
+
+        function baixarXML() {
+            fetch('/baixar_xml', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({{ resultados|tojson }})
+            })
+            .then(resp => resp.blob())
+            .then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = "leads.xml";
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+            });
+        }
+    </script>
+</body>
+</html>
