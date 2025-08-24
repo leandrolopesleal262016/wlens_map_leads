@@ -33,7 +33,7 @@
         <div id="spinner" class="hidden text-center my-4">
             <svg class="animate-spin h-8 w-8 text-blue-600 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+              <path class="opacity-75" fill="currentColor" d="M4 12a 8 8 0 018-8v8z"></path>
             </svg>
             <p class="text-gray-600 mt-2">Buscando dados...</p>
         </div>
@@ -58,8 +58,9 @@
                 </table>
             </div>
 
-            <button onclick="baixarXML()" class="mt-4 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
-                Baixar XML
+            <!-- Botão para baixar XLSX -->
+            <button onclick="baixarXLSX()" class="mt-4 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                Baixar excell
             </button>
 
             <div id="mapa" class="h-96 w-full mt-6 rounded shadow"></div>
@@ -104,34 +105,54 @@
 
     <!-- Scripts globais -->
     <script>
-        function mostrarSpinner() {
+        // Garante escopo global
+        window.mostrarSpinner = function () {
             document.getElementById("spinner").classList.remove("hidden");
-        }
+        };
 
-        function submeterFormulario() {
-            mostrarSpinner();
+        window.submeterFormulario = function () {
+            try {
+                window.mostrarSpinner();
+            } catch (e) {
+                console.error('Erro ao mostrar spinner:', e);
+            }
+            // Submete após pequeno delay para permitir render do spinner
             setTimeout(() => {
                 document.getElementById("formBusca").submit();
-            }, 100);
-        }
+            }, 50);
+        };
 
-        function baixarXML() {
+        // Baixa XLSX usando a rota /baixar_xml (backend já retorna Excel)
+        window.baixarXLSX = function () {
+            const payload = {{ resultados|tojson|default('[]') }};
             fetch('/baixar_xml', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({{ resultados|tojson }})
+                body: JSON.stringify(payload)
             })
-            .then(resp => resp.blob())
+            .then(resp => {
+                if (!resp.ok) throw new Error('Falha ao gerar o XLSX');
+                const ct = resp.headers.get('Content-Type') || '';
+                if (!ct.includes('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')) {
+                    return resp.text().then(t => { throw new Error('Resposta inesperada do servidor: ' + t.slice(0, 200)); });
+                }
+                return resp.blob();
+            })
             .then(blob => {
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = "leads.xml";
+                a.download = "leads.xlsx";
                 document.body.appendChild(a);
                 a.click();
                 a.remove();
+                window.URL.revokeObjectURL(url);
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Não foi possível baixar o arquivo: ' + err.message);
             });
-        }
+        };
     </script>
 </body>
 </html>
