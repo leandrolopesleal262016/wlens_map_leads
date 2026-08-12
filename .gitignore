@@ -33,6 +33,7 @@ __pycache__/
 .venv/
 venv/
 chave.py
+AGENTS.md
 
 # Misc
 *.swp
