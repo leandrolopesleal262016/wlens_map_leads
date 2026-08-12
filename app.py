@@ -290,6 +290,9 @@ API_KEY = _load_api_key()
 
 @app.route("/", methods=["GET", "POST"])
 def index():
+    # The results payload can easily exceed browser cookie limits.
+    # Keep the Flask session empty so reverse proxies do not fail with 502.
+    session.clear()
     resultados = []
     error_message = None
     termo = request.form.get("termo", "").strip()
@@ -309,7 +312,6 @@ def index():
             except RuntimeError as exc:
                 error_message = str(exc)
 
-    session["resultados"] = resultados
     return render_template(
         "index.html",
         resultados=resultados,
@@ -324,12 +326,13 @@ def index():
 @app.route("/baixar_xml", methods=["GET", "POST"])
 def baixar_xml():
     """Mantem a rota legada, mas retorna um arquivo XLSX."""
+    session.clear()
     if request.method == "POST":
         linhas = request.get_json(silent=True)
         if not isinstance(linhas, list):
-            linhas = session.get("resultados", [])
+            linhas = []
     else:
-        linhas = session.get("resultados", [])
+        linhas = []
 
     xlsx_io = _criar_xlsx(linhas)
     resp = send_file(
