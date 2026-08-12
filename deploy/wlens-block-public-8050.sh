@@ -5,7 +5,7 @@ RULE=(
   -p tcp
   --dport 8050
   !
-  -s 127.0.0.1/32
+  -i lo
   !
   -s 172.16.0.0/12
   -j REJECT
