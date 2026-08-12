@@ -1,0 +1,12 @@
+[Unit]
+Description=Block public access to WLENS port 8050
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/wlens-block-public-8050.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
