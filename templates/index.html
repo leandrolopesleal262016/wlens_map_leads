@@ -1,69 +1,121 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>WLENS Captação de leads</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WLENS Captacao de leads</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-100">
-
-    <!-- Navbar com botão de encerrar -->
-    <nav class="bg-gray-800 p-4 text-white text-xl font-bold flex justify-between items-center">
-        <span>WLENS Captação de leads</span>
-        <form action="/sair" method="POST">
-            <!-- <button type="submit" class="bg-red-600 hover:bg-red-700 text-white text-sm px-3 py-1 rounded">
-                Encerrar aplicação
-            </button> -->
-        </form>
+<body class="bg-slate-100 text-slate-900">
+    <nav class="bg-slate-900 px-6 py-4 text-white">
+        <div class="mx-auto flex max-w-6xl items-center justify-between">
+            <span class="text-lg font-semibold">WLENS Captacao de leads</span>
+            <form action="/sair" method="POST">
+                <!-- Acionado apenas quando ALLOW_SHUTDOWN=1 -->
+            </form>
+        </div>
     </nav>
 
-    <div class="container mx-auto p-6">
+    <main class="mx-auto max-w-6xl p-6">
+        <section class="rounded-2xl bg-white p-6 shadow-sm">
+            <form id="formBusca" method="POST" class="space-y-4">
+                <label class="block">
+                    <span class="mb-2 block text-sm font-medium text-slate-700">Busca</span>
+                    <div class="flex flex-col gap-3 sm:flex-row">
+                        <input
+                            type="text"
+                            name="termo"
+                            id="campoBusca"
+                            value="{{ termo }}"
+                            class="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500"
+                            placeholder="Ex: Padarias em Bauru"
+                            required
+                        >
+                        <button
+                            type="button"
+                            onclick="submeterFormulario()"
+                            class="rounded-xl bg-blue-600 px-5 py-3 font-medium text-white transition hover:bg-blue-700"
+                        >
+                            Buscar
+                        </button>
+                    </div>
+                </label>
+            </form>
 
-        <!-- Formulário -->
-        <form id="formBusca" method="POST">
-            <div class="flex gap-2 mb-4">
-                <input type="text" name="termo" id="campoBusca" class="flex-1 p-2 rounded border" placeholder="Ex: Padarias em Bauru" required>
-                <button type="button" onclick="submeterFormulario()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                    Buscar
+            <div id="spinner" class="hidden py-8 text-center">
+                <svg class="mx-auto h-8 w-8 animate-spin text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+                </svg>
+                <p class="mt-3 text-sm text-slate-600">Buscando dados...</p>
+            </div>
+
+            {% if error_message %}
+            <div class="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {{ error_message }}
+            </div>
+            {% endif %}
+
+            {% if resultados %}
+            <div class="mt-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                    <h2 class="text-lg font-semibold">Resultados</h2>
+                    <p class="text-sm text-slate-600">{{ resultados|length }} lead(s) encontrado(s).</p>
+                    <p class="mt-1 text-sm text-slate-500">
+                        O arquivo exportado sai pronto para CRM com colunas do HubSpot e campos extras do Google.
+                        O email permanece vazio porque a Google Places API nao fornece esse dado.
+                    </p>
+                </div>
+                <button
+                    onclick="baixarXLSX()"
+                    class="rounded-xl bg-emerald-600 px-5 py-3 font-medium text-white transition hover:bg-emerald-700"
+                >
+                    {{ download_label }}
                 </button>
             </div>
-        </form>
 
-        <!-- Spinner -->
-        <div id="spinner" class="hidden text-center my-4">
-            <svg class="animate-spin h-8 w-8 text-blue-600 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor" d="M4 12a 8 8 0 018-8v8z"></path>
-            </svg>
-            <p class="text-gray-600 mt-2">Buscando dados...</p>
-        </div>
-
-        {% if resultados %}
-            <div class="overflow-x-auto mt-4">
-                <table class="min-w-full bg-white rounded shadow">
-                    <thead class="bg-gray-200 text-gray-700">
-                        <tr>
-                            <th class="py-2 px-4 text-left">Nome</th>
-                            <th class="py-2 px-4 text-left">Número</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for item in resultados %}
-                        <tr class="border-t">
-                            <td class="py-2 px-4">{{ item.nome }}</td>
-                            <td class="py-2 px-4">{{ item.numero }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+            <div class="mt-4 overflow-hidden rounded-2xl border border-slate-200">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full bg-white">
+                        <thead class="bg-slate-100 text-left text-sm uppercase tracking-wide text-slate-600">
+                            <tr>
+                                <th class="px-4 py-3">Nome</th>
+                                <th class="px-4 py-3">Telefone</th>
+                                <th class="px-4 py-3">Site</th>
+                                <th class="px-4 py-3">Cidade</th>
+                                <th class="px-4 py-3">Rating</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-200 text-sm">
+                            {% for item in resultados %}
+                            <tr>
+                                <td class="px-4 py-3">{{ item.nome }}</td>
+                                <td class="px-4 py-3">{{ item.numero }}</td>
+                                <td class="px-4 py-3">
+                                    {% if item.site %}
+                                    <a
+                                        href="{{ item.site }}"
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        class="text-blue-600 hover:underline"
+                                    >
+                                        {{ item.site }}
+                                    </a>
+                                    {% else %}
+                                    -
+                                    {% endif %}
+                                </td>
+                                <td class="px-4 py-3">{{ item.cidade or '-' }}</td>
+                                <td class="px-4 py-3">{{ item.rating or '-' }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
-            <!-- Botão para baixar XLSX -->
-            <button onclick="baixarXLSX()" class="mt-4 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
-                Baixar excell
-            </button>
-
-            <div id="mapa" class="h-96 w-full mt-6 rounded shadow"></div>
+            {% if maps_enabled %}
+            <div id="mapa" class="mt-6 h-[28rem] w-full rounded-2xl border border-slate-200"></div>
 
             <script>
                 function initMap() {
@@ -75,14 +127,14 @@
 
                     const marcadores = [
                         {% for item in resultados %}
-                            {
-                                position: { lat: {{ item.lat }}, lng: {{ item.lng }} },
-                                title: "{{ item.nome }}"
-                            },
+                        {
+                            position: { lat: {{ item.lat }}, lng: {{ item.lng }} },
+                            title: {{ item.nome|tojson }}
+                        },
                         {% endfor %}
                     ];
 
-                    marcadores.forEach(info => {
+                    marcadores.forEach((info) => {
                         const marker = new google.maps.Marker({
                             position: info.position,
                             map: mapa,
@@ -93,64 +145,64 @@
                             content: info.title
                         });
 
-                        marker.addListener('click', () => {
+                        marker.addListener("click", () => {
                             infowindow.open(mapa, marker);
                         });
                     });
                 }
             </script>
             <script async src="https://maps.googleapis.com/maps/api/js?key={{ key }}&callback=initMap"></script>
-        {% endif %}
-    </div>
+            {% endif %}
+            {% endif %}
+        </section>
+    </main>
 
-    <!-- Scripts globais -->
     <script>
-        // Garante escopo global
         window.mostrarSpinner = function () {
             document.getElementById("spinner").classList.remove("hidden");
         };
 
         window.submeterFormulario = function () {
-            try {
-                window.mostrarSpinner();
-            } catch (e) {
-                console.error('Erro ao mostrar spinner:', e);
-            }
-            // Submete após pequeno delay para permitir render do spinner
+            window.mostrarSpinner();
             setTimeout(() => {
                 document.getElementById("formBusca").submit();
             }, 50);
         };
 
-        // Baixa XLSX usando a rota /baixar_xml (backend já retorna Excel)
         window.baixarXLSX = function () {
             const payload = {{ resultados|tojson|default('[]') }};
-            fetch('/baixar_xml', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+            fetch("/baixar_xml", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload)
             })
-            .then(resp => {
-                if (!resp.ok) throw new Error('Falha ao gerar o XLSX');
-                const ct = resp.headers.get('Content-Type') || '';
-                if (!ct.includes('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')) {
-                    return resp.text().then(t => { throw new Error('Resposta inesperada do servidor: ' + t.slice(0, 200)); });
+            .then((resp) => {
+                if (!resp.ok) {
+                    throw new Error("Falha ao gerar o XLSX");
                 }
+
+                const contentType = resp.headers.get("Content-Type") || "";
+                if (!contentType.includes("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")) {
+                    return resp.text().then((text) => {
+                        throw new Error("Resposta inesperada do servidor: " + text.slice(0, 200));
+                    });
+                }
+
                 return resp.blob();
             })
-            .then(blob => {
+            .then((blob) => {
                 const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = "leads.xlsx";
-                document.body.appendChild(a);
-                a.click();
-                a.remove();
+                const link = document.createElement("a");
+                link.href = url;
+                link.download = "leads_hubspot.xlsx";
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
                 window.URL.revokeObjectURL(url);
             })
-            .catch(err => {
-                console.error(err);
-                alert('Não foi possível baixar o arquivo: ' + err.message);
+            .catch((error) => {
+                console.error(error);
+                alert("Nao foi possivel baixar o arquivo: " + error.message);
             });
         };
     </script>

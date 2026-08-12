@@ -1,0 +1,15 @@
+[Unit]
+Description=WLENS Map Leads
+After=network.target
+
+[Service]
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/wlens_map_leads
+EnvironmentFile=/opt/wlens_map_leads/.env
+ExecStart=/opt/wlens_map_leads/.venv/bin/gunicorn -c /opt/wlens_map_leads/gunicorn.conf.py wsgi:app
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -28,10 +28,13 @@ out/
 *.sublime-workspace
 *.sublime-project
 
+# Python
+__pycache__/
+.venv/
+venv/
+chave.py
+
 # Misc
 *.swp
 *.bak
 *.tmp
-
-# Python key file
-chave.py
